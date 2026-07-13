@@ -84,19 +84,27 @@ RUN git clone --depth 1 --branch ${BTCPP_VERSION} \
 # -----------------------------------------------------------------------------
 # 4. 安装 Rerun C++ SDK
 #    项目 CMakeLists.txt 使用 find_package(rerun_sdk REQUIRED)。
-#    从 GitHub Release 下载预编译包，解压到 /opt/rerun_sdk。
+#    从 GitHub Release 下载 rerun_cpp_sdk.zip，解压后从源码编译安装，
+#    生成 rerun_sdkConfig.cmake 供 find_package 使用。
 # -----------------------------------------------------------------------------
 ARG RERUN_VERSION=0.19.0
 RUN wget -q "https://github.com/rerun-io/rerun/releases/download/${RERUN_VERSION}/rerun_cpp_sdk.zip" \
         -O /tmp/rerun_cpp_sdk.zip && \
     unzip -q /tmp/rerun_cpp_sdk.zip -d /opt/ && \
-    rm /tmp/rerun_cpp_sdk.zip
+    rm /tmp/rerun_cpp_sdk.zip && \
+    cd /opt/rerun_cpp_sdk && \
+    mkdir build && cd build && \
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DRERUN_INSTALL_RERUN_C=ON && \
+    make -j"$(nproc)" && \
+    make install && \
+    ldconfig && \
+    rm -rf /opt/rerun_cpp_sdk/build
 
-# rerun_cpp_sdk.zip 解压后生成 /opt/rerun_sdk/ 目录，其中包含
-# rerun_sdkConfig.cmake。设置 rerun_sdk_DIR 环境变量使 CMake
-# 的 find_package(rerun_sdk) 能直接找到该配置文件。
-ENV rerun_sdk_DIR="/opt/rerun_sdk"
-ENV CMAKE_PREFIX_PATH="/opt:/opt/rerun_sdk:${CMAKE_PREFIX_PATH}"
+# make install 后，rerun_sdkConfig.cmake 位于 /usr/local/lib/cmake/rerun_sdk/
+# CMAKE_PREFIX_PATH 已包含 /usr/local（系统默认），无需额外设置。
 
 # -----------------------------------------------------------------------------
 # 5. 安装 Booster Robotics SDK
