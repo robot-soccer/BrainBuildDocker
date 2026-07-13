@@ -1,0 +1,6 @@
+# Docker 构建上下文忽略列表
+
+**/.DS_Store
+*.swp
+*.swo
+*~
